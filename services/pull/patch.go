@@ -51,10 +51,12 @@ func TestPatch(pr *models.PullRequest) error {
 	tmpBasePath, err := createTemporaryRepo(pr)
 	if err != nil {
 		log.Error("CreateTemporaryPath: %v", err)
+		fmt.Errorf("CreateTemporaryPath: %v", err)
 		return err
 	}
 	defer func() {
 		if err := models.RemoveTemporaryPath(tmpBasePath); err != nil {
+			fmt.Errorf("CreateTemporaryPath: %v", err)
 			log.Error("Merge: RemoveTemporaryPath: %s", err)
 		}
 	}()
@@ -76,6 +78,7 @@ func TestPatch(pr *models.PullRequest) error {
 	pr.MergeBase = strings.TrimSpace(pr.MergeBase)
 	tmpPatchFile, err := ioutil.TempFile("", "patch")
 	if err != nil {
+		fmt.Errorf("CreateTemporaryPath: %v", err)
 		log.Error("Unable to create temporary patch file! Error: %v", err)
 		return fmt.Errorf("Unable to create temporary patch file! Error: %v", err)
 	}

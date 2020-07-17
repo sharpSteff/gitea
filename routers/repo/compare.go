@@ -65,7 +65,7 @@ func setImageCompareContext(ctx *context.Context, base *git.Commit, head *git.Co
 }
 
 // ParseCompareInfo parse compare info between two commit for preparing comparing references
-func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *git.Repository, *git.CompareInfo, string, string) {
+func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *git.Repository, *git.CompareInfo, string, string, string) {
 	baseRepo := ctx.Repo.Repository
 
 	// Get compared branches information
@@ -104,7 +104,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	if len(infos) != 2 {
 		log.Trace("ParseCompareInfo[%d]: not enough compared branches information %s", baseRepo.ID, infos)
 		ctx.NotFound("CompareAndPullRequest", nil)
-		return nil, nil, nil, nil, "", ""
+		return nil, nil, nil, nil, "", "", ""
 	}
 
 	ctx.Data["BaseName"] = baseRepo.OwnerName
@@ -128,7 +128,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 				} else {
 					ctx.ServerError("GetUserByName", err)
 				}
-				return nil, nil, nil, nil, "", ""
+				return nil, nil, nil, nil, "", "", ""
 			}
 			headBranch = headInfos[1]
 			isSameRepo = headUser.ID == ctx.Repo.Owner.ID
@@ -143,7 +143,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 				} else {
 					ctx.ServerError("GetRepositoryByOwnerAndName", err)
 				}
-				return nil, nil, nil, nil, "", ""
+				return nil, nil, nil, nil, "", "", ""
 			}
 			if err := headRepo.GetOwner(); err != nil {
 				if models.IsErrUserNotExist(err) {
@@ -151,7 +151,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 				} else {
 					ctx.ServerError("GetUserByName", err)
 				}
-				return nil, nil, nil, nil, "", ""
+				return nil, nil, nil, nil, "", "", ""
 			}
 			headBranch = headInfos[1]
 			headUser = headRepo.Owner
@@ -159,7 +159,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		}
 	} else {
 		ctx.NotFound("CompareAndPullRequest", nil)
-		return nil, nil, nil, nil, "", ""
+		return nil, nil, nil, nil, "", "", ""
 	}
 	ctx.Data["HeadUser"] = headUser
 	ctx.Data["HeadBranch"] = headBranch
@@ -177,7 +177,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 			baseIsCommit = true
 		} else {
 			ctx.NotFound("IsRefExist", nil)
-			return nil, nil, nil, nil, "", ""
+			return nil, nil, nil, nil, "", "", ""
 		}
 	}
 	ctx.Data["BaseIsCommit"] = baseIsCommit
@@ -202,7 +202,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		if err != nil {
 			if !models.IsErrRepoNotExist(err) {
 				ctx.ServerError("Unable to find root repo", err)
-				return nil, nil, nil, nil, "", ""
+				return nil, nil, nil, nil, "", "", ""
 			}
 		} else {
 			rootRepo = baseRepo.BaseRepo
@@ -260,7 +260,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		headGitRepo, err = git.OpenRepository(headRepo.RepoPath())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
-			return nil, nil, nil, nil, "", ""
+			return nil, nil, nil, nil, "", "", ""
 		}
 		defer headGitRepo.Close()
 	}
@@ -273,7 +273,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	permBase, err := models.GetUserRepoPermission(baseRepo, ctx.User)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
-		return nil, nil, nil, nil, "", ""
+		return nil, nil, nil, nil, "", "", ""
 	}
 	if !permBase.CanRead(models.UnitTypeCode) {
 		if log.IsTrace() {
@@ -283,7 +283,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 				permBase)
 		}
 		ctx.NotFound("ParseCompareInfo", nil)
-		return nil, nil, nil, nil, "", ""
+		return nil, nil, nil, nil, "", "", ""
 	}
 
 	// If we're not merging from the same repo:
@@ -292,7 +292,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		permHead, err := models.GetUserRepoPermission(headRepo, ctx.User)
 		if err != nil {
 			ctx.ServerError("GetUserRepoPermission", err)
-			return nil, nil, nil, nil, "", ""
+			return nil, nil, nil, nil, "", "", ""
 		}
 		if !permHead.CanRead(models.UnitTypeCode) {
 			if log.IsTrace() {
@@ -302,7 +302,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 					permHead)
 			}
 			ctx.NotFound("ParseCompareInfo", nil)
-			return nil, nil, nil, nil, "", ""
+			return nil, nil, nil, nil, "", "", ""
 		}
 	}
 
@@ -316,7 +316,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		perm, branches, err := getBranchesForRepo(ctx.User, rootRepo)
 		if err != nil {
 			ctx.ServerError("GetBranchesForRepo", err)
-			return nil, nil, nil, nil, "", ""
+			return nil, nil, nil, nil, "", "", ""
 		}
 		if perm {
 			ctx.Data["RootRepo"] = rootRepo
@@ -336,7 +336,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		perm, branches, err := getBranchesForRepo(ctx.User, ownForkRepo)
 		if err != nil {
 			ctx.ServerError("GetBranchesForRepo", err)
-			return nil, nil, nil, nil, "", ""
+			return nil, nil, nil, nil, "", "", ""
 		}
 		if perm {
 			ctx.Data["OwnForkRepo"] = ownForkRepo
@@ -356,16 +356,16 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 			headIsCommit = true
 		} else {
 			ctx.NotFound("IsRefExist", nil)
-			return nil, nil, nil, nil, "", ""
+			return nil, nil, nil, nil, "", "", ""
 		}
 	}
 	ctx.Data["HeadIsCommit"] = headIsCommit
 	ctx.Data["HeadIsBranch"] = headIsBranch
 	ctx.Data["HeadIsTag"] = headIsTag
 
-	// Treat as pull request if both references are branches
+	// Treat as pull request if both references are branches or head is tag
 	if ctx.Data["PageIsComparePull"] == nil {
-		ctx.Data["PageIsComparePull"] = headIsBranch && baseIsBranch
+		ctx.Data["PageIsComparePull"] = (headIsTag || headIsBranch) && baseIsBranch
 	}
 
 	if ctx.Data["PageIsComparePull"] == true && !permBase.CanReadIssuesOrPulls(true) {
@@ -376,7 +376,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 				permBase)
 		}
 		ctx.NotFound("ParseCompareInfo", nil)
-		return nil, nil, nil, nil, "", ""
+		return nil, nil, nil, nil, "", "", ""
 	}
 
 	baseBranchRef := baseBranch
@@ -395,11 +395,11 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	compareInfo, err := headGitRepo.GetCompareInfo(baseRepo.RepoPath(), baseBranchRef, headBranchRef)
 	if err != nil {
 		ctx.ServerError("GetCompareInfo", err)
-		return nil, nil, nil, nil, "", ""
+		return nil, nil, nil, nil, "", "", ""
 	}
 	ctx.Data["BeforeCommitID"] = compareInfo.MergeBase
 
-	return headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch
+	return headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch, headBranchRef
 }
 
 // PrepareCompareDiff renders compare diff page
@@ -527,7 +527,8 @@ func getBranchesForRepo(user *models.User, repo *models.Repository) (bool, []str
 
 // CompareDiff show different from one commit to another commit
 func CompareDiff(ctx *context.Context) {
-	headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch := ParseCompareInfo(ctx)
+	headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch, _ := ParseCompareInfo(ctx)
+
 	if ctx.Written() {
 		return
 	}
@@ -545,6 +546,13 @@ func CompareDiff(ctx *context.Context) {
 			return
 		}
 		ctx.Data["HeadBranches"] = headBranches
+
+		tags, err := headGitRepo.GetTags()
+		if err != nil {
+			ctx.ServerError("GetTags", err)
+			return
+		}
+		ctx.Data["Tags"] = tags
 
 		pr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch)
 		if err != nil {

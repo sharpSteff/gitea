@@ -28,10 +28,12 @@ import (
 
 // NewPullRequest creates new pull request with labels for repository.
 func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int64, uuids []string, pr *models.PullRequest, assigneeIDs []int64) error {
+	fmt.Println("Still good 31")
 	if err := TestPatch(pr); err != nil {
 		return err
 	}
 
+	fmt.Println("Still good 36")
 	divergence, err := GetDiverging(pr)
 	if err != nil {
 		return err
@@ -39,23 +41,30 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 	pr.CommitsAhead = divergence.Ahead
 	pr.CommitsBehind = divergence.Behind
 
+	fmt.Println("Still good 31")
 	if err := models.NewPullRequest(repo, pull, labelIDs, uuids, pr); err != nil {
+		fmt.Println("Not good")
+		fmt.Errorf("Not good %v", err)
 		return err
 	}
 
+	fmt.Println("Still good 50")
 	for _, assigneeID := range assigneeIDs {
 		if err := issue_service.AddAssigneeIfNotAssigned(pull, pull.Poster, assigneeID); err != nil {
 			return err
 		}
 	}
 
+	fmt.Println("Still good 58")
 	pr.Issue = pull
 	pull.PullRequest = pr
 
+	fmt.Println("Still good 62")
 	if err := PushToBaseRepo(pr); err != nil {
 		return err
 	}
 
+	fmt.Println("Still good 67")
 	notification.NotifyNewPullRequest(pr)
 
 	// add first push codes comment
@@ -65,12 +74,14 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 	}
 	defer baseGitRepo.Close()
 
+	fmt.Println("Still good 77")
 	compareInfo, err := baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(),
 		git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
 	if err != nil {
 		return err
 	}
 
+	fmt.Println("Still good 84")
 	if compareInfo.Commits.Len() > 0 {
 		data := models.PushActionContent{IsForcePush: false}
 		data.CommitIDs = make([]string, 0, compareInfo.Commits.Len())

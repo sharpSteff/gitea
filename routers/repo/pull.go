@@ -397,7 +397,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		return compareInfo
 	}
 
-	var headBranchExist bool
+	var sourceExist bool
 	var headBranchSha string
 	// HeadRepo may be missing
 	if pull.HeadRepo != nil {
@@ -408,18 +408,29 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		}
 		defer headGitRepo.Close()
 
-		headBranchExist = headGitRepo.IsBranchExist(pull.HeadBranch)
-
+		headBranchExist := headGitRepo.IsBranchExist(pull.HeadBranch)
+		headTagExist := false
 		if headBranchExist {
 			headBranchSha, err = headGitRepo.GetBranchCommitID(pull.HeadBranch)
 			if err != nil {
 				ctx.ServerError("GetBranchCommitID", err)
 				return nil
 			}
+		} else {
+			headTagExist = headGitRepo.IsTagExist(pull.HeadBranch)
+			if headTagExist {
+				headBranchSha, err = headGitRepo.GetTagCommitID(pull.HeadBranch)
+				if err != nil {
+					ctx.ServerError("GetBranchCommitID", err)
+					return nil
+				}
+			}
 		}
+
+		sourceExist = headBranchExist || headTagExist
 	}
 
-	if headBranchExist {
+	if sourceExist {
 		ctx.Data["UpdateAllowed"], err = pull_service.IsUserAllowedToUpdate(pull, ctx.User)
 		if err != nil {
 			ctx.ServerError("IsUserAllowedToUpdate", err)
@@ -474,7 +485,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	ctx.Data["HeadBranchCommitID"] = headBranchSha
 	ctx.Data["PullHeadCommitID"] = sha
 
-	if pull.HeadRepo == nil || !headBranchExist || headBranchSha != sha {
+	if pull.HeadRepo == nil || !sourceExist || headBranchSha != sha {
 		ctx.Data["IsPullRequestBroken"] = true
 		if pull.IsSameRepo() {
 			ctx.Data["HeadTarget"] = pull.HeadBranch
@@ -893,18 +904,20 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	renderAttachmentSettings(ctx)
-
+	fmt.Printf("Still good 896")
 	var (
 		repo        = ctx.Repo.Repository
 		attachments []string
 	)
 
-	headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch := ParseCompareInfo(ctx)
+	headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch, headBranchRef := ParseCompareInfo(ctx)
+	fmt.Printf("%v, %v, %v, %v, %v, %v, %v", headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch, headBranchRef)
+
 	if ctx.Written() {
 		return
 	}
 	defer headGitRepo.Close()
-
+	fmt.Printf("Still good 907")
 	labelIDs, assigneeIDs, milestoneID := ValidateRepoMetas(ctx, form, true)
 	if ctx.Written() {
 		return
@@ -914,6 +927,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		attachments = form.Files
 	}
 
+	fmt.Println("Still good 917")
 	if ctx.HasError() {
 		auth.AssignForm(form, ctx.Data)
 
@@ -923,12 +937,13 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		if ctx.Written() {
 			return
 		}
-
+		fmt.Println("Still good 927")
 		ctx.HTML(200, tplCompareDiff)
 		return
 	}
 
 	if util.IsEmptyString(form.Title) {
+		fmt.Println("Still good 933")
 		PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch)
 		if ctx.Written() {
 			return
@@ -937,7 +952,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		ctx.RenderWithErr(ctx.Tr("repo.issues.new.title_empty"), tplCompareDiff, form)
 		return
 	}
-
+	fmt.Println("Still good 942")
 	pullIssue := &models.Issue{
 		RepoID:      repo.ID,
 		Title:       form.Title,
@@ -948,19 +963,23 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		Content:     form.Content,
 	}
 	pullRequest := &models.PullRequest{
-		HeadRepoID: headRepo.ID,
-		BaseRepoID: repo.ID,
-		HeadBranch: headBranch,
-		BaseBranch: baseBranch,
-		HeadRepo:   headRepo,
-		BaseRepo:   repo,
-		MergeBase:  prInfo.MergeBase,
-		Type:       models.PullRequestGitea,
+		HeadRepoID:    headRepo.ID,
+		BaseRepoID:    repo.ID,
+		HeadBranch:    headBranch,
+		HeadBranchRef: headBranchRef,
+		BaseBranch:    baseBranch,
+		HeadRepo:      headRepo,
+		BaseRepo:      repo,
+		MergeBase:     prInfo.MergeBase,
+		Type:          models.PullRequestGitea,
 	}
 	// FIXME: check error in the case two people send pull request at almost same time, give nice error prompt
 	// instead of 500.
 
+	fmt.Println("Still good 966")
 	if err := pull_service.NewPullRequest(repo, pullIssue, labelIDs, attachments, pullRequest, assigneeIDs); err != nil {
+
+		fmt.Printf("Not good 968 %v\n", pullRequest)
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
 			return
@@ -979,6 +998,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		return
 	}
 
+	fmt.Println("Still good 987")
 	log.Trace("Pull request created: %d/%d", repo.ID, pullIssue.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pullIssue.Index))
 }

@@ -54,6 +54,7 @@ type PullRequest struct {
 	BaseRepoID      int64       `xorm:"INDEX"`
 	BaseRepo        *Repository `xorm:"-"`
 	HeadBranch      string
+	HeadBranchRef   string
 	BaseBranch      string
 	ProtectedBranch *ProtectedBranch `xorm:"-"`
 	MergeBase       string           `xorm:"VARCHAR(40)"`
