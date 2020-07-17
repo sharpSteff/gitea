@@ -408,26 +408,13 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		}
 		defer headGitRepo.Close()
 
-		headBranchExist := headGitRepo.IsBranchExist(pull.HeadBranch)
-		headTagExist := false
-		if headBranchExist {
-			headBranchSha, err = headGitRepo.GetBranchCommitID(pull.HeadBranch)
-			if err != nil {
-				ctx.ServerError("GetBranchCommitID", err)
-				return nil
-			}
-		} else {
-			headTagExist = headGitRepo.IsTagExist(pull.HeadBranch)
-			if headTagExist {
-				headBranchSha, err = headGitRepo.GetTagCommitID(pull.HeadBranch)
-				if err != nil {
-					ctx.ServerError("GetBranchCommitID", err)
-					return nil
-				}
-			}
+		refCommitID, err  := headGitRepo.GetRefCommitID(pull.HeadBranchRef)
+		if err != nil {
+			ctx.ServerError("GetRefCommitID", err)
+			return nil
 		}
 
-		sourceExist = headBranchExist || headTagExist
+		sourceExist = len(refCommitID) > 0
 	}
 
 	if sourceExist {
