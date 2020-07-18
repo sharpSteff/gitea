@@ -574,8 +574,12 @@ func GetCommitMessages(pr *models.PullRequest) string {
 
 	headCommit, err := gitRepo.GetRefCommit(pr.HeadBranchRef)
 	if err != nil {
-		log.Error("Unable to get head commit: %s Error: %v", pr.HeadBranch, err)
-		return ""
+		// back fall for old PRs
+		headCommit, err = gitRepo.GetBranchCommit(pr.HeadBranch)
+		if err != nil {
+			log.Error("Unable to get head commit: %s Error: %v", pr.HeadBranch, err)
+			return ""
+		}
 	}
 
 	mergeBase, err := gitRepo.GetCommit(pr.MergeBase)
@@ -738,7 +742,10 @@ func IsHeadEqualWithBranch(pr *models.PullRequest, branchName string) (bool, err
 	}
 	headCommit, err := headGitRepo.GetRefCommit(pr.HeadBranchRef)
 	if err != nil {
-		return false, err
+		headCommit, err = headGitRepo.GetBranchCommit(pr.HeadBranch)
+		if err != nil {
+			return false, err
+		}
 	}
 	return baseCommit.HasPreviousCommit(headCommit.ID)
 }

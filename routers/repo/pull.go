@@ -408,12 +408,24 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		}
 		defer headGitRepo.Close()
 
-		refExists = headGitRepo.IsRefExist(pull.HeadBranchRef)
-		if refExists {
-			headRefSha, err = headGitRepo.GetRefCommitID(pull.HeadBranchRef)
-			if err != nil {
-				ctx.ServerError("GetBranchCommitID", err)
-				return nil
+		if len(pull.HeadBranchRef) > 0 {
+			refExists = headGitRepo.IsRefExist(pull.HeadBranchRef)
+			if refExists {
+				headRefSha, err = headGitRepo.GetRefCommitID(pull.HeadBranchRef)
+				if err != nil {
+					ctx.ServerError("GetRefCommitID", err)
+					return nil
+				}
+			}
+		} else {
+			// back fall vor repos with no head branch ref stored
+			refExists = headGitRepo.IsBranchExist(pull.HeadBranch)
+			if refExists {
+				headRefSha, err = headGitRepo.GetBranchCommitID(pull.HeadBranch)
+				if err != nil {
+					ctx.ServerError("GetBranchCommitID", err)
+					return nil
+				}
 			}
 		}
 	}
