@@ -397,8 +397,8 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		return compareInfo
 	}
 
-	var sourceExist bool
-	var headBranchSha string
+	var refExists bool
+	var headRefSha string
 	// HeadRepo may be missing
 	if pull.HeadRepo != nil {
 		headGitRepo, err := git.OpenRepository(pull.HeadRepo.RepoPath())
@@ -408,16 +408,17 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		}
 		defer headGitRepo.Close()
 
-		refCommitID, err  := headGitRepo.GetRefCommitID(pull.HeadBranchRef)
-		if err != nil {
-			ctx.ServerError("GetRefCommitID", err)
-			return nil
+		refExists := headGitRepo.IsRefExist(pull.HeadBranchRef)
+		if refExists {
+			headRefSha, err = headGitRepo.GetRefCommitID(pull.HeadBranchRef)
+			if err != nil {
+				ctx.ServerError("GetBranchCommitID", err)
+				return nil
+			}
 		}
-
-		sourceExist = len(refCommitID) > 0
 	}
 
-	if sourceExist {
+	if refExists {
 		ctx.Data["UpdateAllowed"], err = pull_service.IsUserAllowedToUpdate(pull, ctx.User)
 		if err != nil {
 			ctx.ServerError("IsUserAllowedToUpdate", err)
@@ -468,11 +469,11 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		ctx.Data["RequiredStatusCheckState"] = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pull.ProtectedBranch.StatusCheckContexts)
 	}
 
-	ctx.Data["HeadBranchMovedOn"] = headBranchSha != sha
-	ctx.Data["HeadBranchCommitID"] = headBranchSha
+	ctx.Data["HeadBranchMovedOn"] = headRefSha != sha
+	ctx.Data["HeadBranchCommitID"] = headRefSha
 	ctx.Data["PullHeadCommitID"] = sha
 
-	if pull.HeadRepo == nil || !sourceExist || headBranchSha != sha {
+	if pull.HeadRepo == nil || !refExists || headRefSha != sha {
 		ctx.Data["IsPullRequestBroken"] = true
 		if pull.IsSameRepo() {
 			ctx.Data["HeadTarget"] = pull.HeadBranch
