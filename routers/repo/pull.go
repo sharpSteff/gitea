@@ -408,7 +408,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		}
 		defer headGitRepo.Close()
 
-		refExists := headGitRepo.IsRefExist(pull.HeadBranchRef)
+		refExists = headGitRepo.IsRefExist(pull.HeadBranchRef)
 		if refExists {
 			headRefSha, err = headGitRepo.GetRefCommitID(pull.HeadBranchRef)
 			if err != nil {
