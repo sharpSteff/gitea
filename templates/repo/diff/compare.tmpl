@@ -57,22 +57,6 @@
 						<i class="filter icon"></i>
 						<input name="search" placeholder="{{.i18n.Tr "repo.pulls.filter_branch"}}...">
 					</div>
-					<div class="header branch-tag-choice">
-						<div class="ui grid">
-							<div class="two column row">
-								<a class="reference column" href="#" @click="mode = 'branches'; focusSearchField()">
-									<span class="text" :class="{black: mode == 'branches'}">
-										{{svg "octicon-git-branch" 16}} {{.i18n.Tr "repo.branches"}}
-									</span>
-								</a>
-								<a class="reference column" href="#" @click="mode = 'tags'; focusSearchField()">
-									<span class="text" :class="{black: mode == 'tags'}">
-										<i class="reference tags icon"></i> {{.i18n.Tr "repo.tags"}}
-									</span>
-								</a>
-							</div>
-						</div>
-					</div>
 					<div class="scrolling menu">
 						{{range .HeadBranches}}
 							<div class="{{if eq $.HeadBranch .}}selected{{end}} item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}/{{$.HeadRepo.Name}}:{{end}}{{EscapePound .}}">{{$.HeadUser.Name}}:{{.}}</div>
