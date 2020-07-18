@@ -17,6 +17,15 @@ import (
 	"github.com/mcuadros/go-version"
 )
 
+// GetRefCommit returns the last commit string of given reference (branch or tag).
+func (repo *Repository) GetRefCommit(name string) (*Commit, error) {
+	commitID, err := repo.GetRefCommitID(name)
+	if err != nil {
+		return nil, err
+	}
+	return repo.GetCommit(commitID)
+}
+
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
 	ref, err := repo.gogitRepo.Reference(plumbing.ReferenceName(name), true)
